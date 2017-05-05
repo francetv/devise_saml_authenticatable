@@ -1,4 +1,6 @@
 require 'open3'
+require 'socket'
+require 'timeout'
 
 def sh!(cmd)
   unless system(cmd)
@@ -7,8 +9,7 @@ def sh!(cmd)
 end
 
 def app_ready?(pid, port)
-  Process.getpgid(pid) &&
-    system("lsof -i:#{port}", out: '/dev/null')
+  Process.getpgid(pid) && port_open?(port)
 end
 
 def create_app(name, env = {})
@@ -41,4 +42,18 @@ def stop_app(pid)
     Process.kill(:INT, pid)
     Process.wait(pid)
   end
+end
+
+def port_open?(port)
+  Timeout::timeout(1) do
+    begin
+      s = TCPSocket.new('127.0.0.1', port)
+      s.close
+      return true
+    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+      return false
+    end
+  end
+rescue Timeout::Error
+  false
 end
