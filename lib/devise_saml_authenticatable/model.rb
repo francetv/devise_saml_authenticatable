@@ -29,44 +29,41 @@ module Devise
       end
 
       module ClassMethods
-        def authenticate_with_saml(saml_response, relay_state)
+       
+       def serialize_from_session(key, salt)
+           new salt
+       end
+
+       def serialize_into_session(record)
+           auth_key = self.authentication_keys.first
+           return nil unless record.respond_to?(auth_key)
+           [record.class, record.to_hash]
+         end
+
+
+       def authenticate_with_saml(saml_response, relay_state)
           key = Devise.saml_default_user_key
-          decorated_response = ::SamlAuthenticatable::SamlResponse.new(
-            saml_response,
-            attribute_map
-          )
+          attributes = saml_response.attributes
           if (Devise.saml_use_subject)
             auth_value = saml_response.name_id
           else
-            auth_value = decorated_response.attribute_value_by_resource_key(key)
+            inv_attr = attribute_map.invert
+            auth_value = attributes[inv_attr[key.to_s]]
           end
           auth_value.try(:downcase!) if Devise.case_insensitive_keys.include?(key)
 
-          resource = Devise.saml_resource_locator.call(self, decorated_response, auth_value)
-
-          if Devise.saml_resource_validator
-            if not Devise.saml_resource_validator.new.validate(resource, saml_response)
-              logger.info("User(#{auth_value}) did not pass custom validation.")
-              return nil
-            end
-          end
-
-          if resource.nil?
-            if Devise.saml_create_user
-              logger.info("Creating user(#{auth_value}).")
-              resource = new
-            else
-              logger.info("User(#{auth_value}) not found.  Not configured to create the user.")
-              return nil
-            end
-          end
+          resource = new
 
           if Devise.saml_update_user || (resource.new_record? && Devise.saml_create_user)
-            Devise.saml_update_resource_hook.call(resource, decorated_response, auth_value)
+            set_user_saml_attributes(resource, attributes)
+            if (Devise.saml_use_subject)
+              resource.send "#{key}=", auth_value
+            end
+            resource.save!
           end
-
           resource
         end
+
 
         def reset_session_key_for(name_id)
           resource = find_by(Devise.saml_default_user_key => name_id)
