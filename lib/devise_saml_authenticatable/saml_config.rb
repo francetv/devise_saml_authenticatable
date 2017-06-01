@@ -2,8 +2,8 @@ require 'ruby-saml'
 module DeviseSamlAuthenticatable
   module SamlConfig
     def saml_config(idp_entity_id = nil)
-      return file_based_config if file_based_config
-      return adapter_based_config(idp_entity_id) if Devise.idp_settings_adapter
+      #return file_based_config if file_based_config
+      #return adapter_based_config(idp_entity_id) if Devise.idp_settings_adapter
 
       Devise.saml_config
     end
