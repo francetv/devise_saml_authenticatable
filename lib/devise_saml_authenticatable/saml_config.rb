@@ -33,7 +33,7 @@ module DeviseSamlAuthenticatable
     end
 
     def get_idp_entity_id(params)
-      Devise.idp_entity_id_reader.entity_id(params)
+      #Devise.idp_entity_id_reader.entity_id(params)
     end
   end
 end
