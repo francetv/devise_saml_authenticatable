@@ -44,6 +44,7 @@ module Devise
        def authenticate_with_saml(saml_response, relay_state)
           key = Devise.saml_default_user_key
           attributes = saml_response.attributes
+          attributes.class.single_value_compatibility = false
           if (Devise.saml_use_subject)
             auth_value = saml_response.name_id
           else
@@ -83,7 +84,8 @@ module Devise
         def set_user_saml_attributes(user,attributes)
           attribute_map.each do |k,v|
             Rails.logger.debug "Setting: #{v}, #{attributes[k]}"
-            user.send "#{v}=", attributes[k]
+            value = attributes[k].count == 1 ? attributes[k].first : attributes[k]
+            user.send "#{v}=", value
           end
         end
 
